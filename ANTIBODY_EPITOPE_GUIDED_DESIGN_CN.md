@@ -22,6 +22,16 @@
 
 候选排序新增 `epitope` 权重。该权重只用于决定结构验证队列，并不表示该候选物已经与任何抗体竞争结合。
 
+## 内置的可切换结构配置
+
+| 配置 ID | 靶点 | 设计区域 | 证据与用途 |
+|---|---|---|---|
+| `pdl1_antibody_pd1_facing_v_domain`（默认） | PD-L1 | N-terminal V-domain 的 PD-1-facing surface | PDB 5XXY（atezolizumab）和 5X8M（durvalumab）；用于 PD-L1 环肽候选排序。 |
+| `pd1_antibody_loop_ensemble` | PD-1 | BC、CC′、C′D、FG loops 及邻近 PD-L1-facing surface | PDB 7WSL（dostarlimab）、7WVM（cemiplimab）与结构比较研究；仅用于平行的 PD-1 靶点设计，不能与 PD-L1 候选直接混排。 |
+| `pdl1_patent_mapped_contacts` | PD-L1 | 报告的 QDAGVYRCMIS 区域及 D26/R113 上下文 | EP3455257B1、US10544225B2、WO2017055547A1 中披露的 Pepscan、HDX-MS、丙氨酸扫描与 epitope binning 证据；按专利逐项审查，不能视作普适表位。 |
+
+调用 `run_pipeline(..., epitope_profile_id="pdl1_antibody_pd1_facing_v_domain")` 可选择配置；`GET /api/epitope/profiles` 会返回全部配置及来源链接。
+
 ## 验证路径
 
 1. 使用与指定抗体一致的 PD-L1 构象进行重对接和姿势聚类；
