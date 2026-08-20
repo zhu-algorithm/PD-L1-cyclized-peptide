@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
-from platform_core import AntibodyEpitopeGuidedDesign, TargetLiteratureKB, ExperimentalFeedbackLoop, run_pipeline
+from platform_core import AntibodyEpitopeGuidedDesign, EPITOPE_PROFILES, TargetLiteratureKB, ExperimentalFeedbackLoop, run_pipeline
 
 ROOT = Path(__file__).resolve().parent
 RUNS = ROOT / "runs"
@@ -150,6 +150,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/target": return self.send(json.dumps(TargetLiteratureKB().target(), ensure_ascii=False))
         if path == "/api/literature": return self.send(json.dumps(TargetLiteratureKB().search(), ensure_ascii=False))
         if path == "/api/epitope": return self.send(json.dumps(AntibodyEpitopeGuidedDesign().describe(), ensure_ascii=False))
+        if path == "/api/epitope/profiles": return self.send(json.dumps({"profiles":[AntibodyEpitopeGuidedDesign(key).describe() for key in EPITOPE_PROFILES]}, ensure_ascii=False))
         if path == "/api/runs":
             runs = [{"id": p.stem, "created": p.stat().st_mtime} for p in sorted(RUNS.glob("run_*.json"), reverse=True)[:20]]
             return self.send(json.dumps(runs))
@@ -166,7 +167,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             n = int(self.headers.get("Content-Length", "0")); payload = json.loads(self.rfile.read(n) or b"{}")
             if path == "/api/pipeline":
-                return self.send(json.dumps(run_pipeline(payload.get("seed", "ACLVIFWY"), payload.get("count", 30), payload.get("weights", {})), ensure_ascii=False))
+                return self.send(json.dumps(run_pipeline(payload.get("seed", "ACLVIFWY"), payload.get("count", 30), payload.get("weights", {}), payload.get("epitope_profile_id", "pdl1_antibody_pd1_facing_v_domain")), ensure_ascii=False))
             if path == "/api/feedback":
                 result = ExperimentalFeedbackLoop().record(payload.get("candidate_id", ""), payload.get("assay", ""), payload.get("value", 0), payload.get("unit", ""))
                 return self.send(json.dumps(result, ensure_ascii=False))
