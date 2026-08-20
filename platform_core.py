@@ -14,6 +14,31 @@ LITERATURE = [
  {"id":"CONFIG:AB-EPITOPE-001","title":"Antibody epitope-guided design configuration","type":"design-rule","evidence":"requires an antibody-PD-L1 complex or curated contact-residue list with provenance"},
  {"id":"CURATED:PDL1-001","title":"PD-L1 cyclic-peptide discovery workflow","type":"workflow","evidence":"requires orthogonal experimental confirmation"},
 ]
+EPITOPE_PROFILES = {
+ "pdl1_antibody_pd1_facing_v_domain": {
+  "target":"PD-L1", "label":"PD-L1 antibody / PD-1-facing V-domain", "mode":"default for PD-L1 cyclic-peptide discovery",
+  "structural_references":["PDB:5XXY (atezolizumab)","PDB:5X8M (durvalumab)"],
+  "design_regions":["N-terminal V-domain","PD-1-facing surface"],
+  "evidence_level":"experimentally resolved antibody complexes",
+  "source_urls":["https://www.rcsb.org/structure/5XXY","https://www.rcsb.org/structure/5X8M"],
+ },
+ "pd1_antibody_loop_ensemble": {
+  "target":"PD-1", "label":"PD-1 antibody loop ensemble", "mode":"parallel PD-1-targeting design mode; not combined with PD-L1 ranking",
+  "structural_references":["PDB:7WSL (dostarlimab)","PDB:7WVM (cemiplimab)"],
+  "design_regions":["BC loop","CC′ loop","C′D loop","FG loop","adjacent PD-L1-facing surface"],
+  "special_context":["Dostarlimab: R86/C′D-loop structural recognition","Cemiplimab: N58 glycosylation and BC/FG-loop conformation context"],
+  "evidence_level":"experimentally resolved antibody complexes plus structural comparison",
+  "source_urls":["https://www.rcsb.org/structure/7WSL","https://www.rcsb.org/structure/7WVM","https://doi.org/10.1371/journal.pone.0304270"],
+ },
+ "pdl1_patent_mapped_contacts": {
+  "target":"PD-L1", "label":"PD-L1 patent-derived epitope mapping", "mode":"optional evidence overlay; requires claim-by-claim review",
+  "structural_references":["EP3455257B1","US10544225B2","WO2017055547A1"],
+  "design_regions":["reported QDAGVYRCMIS peptide region","reported D26 / R113 residue context"],
+  "mapping_methods":["Pepscan","HDX-MS","alanine scanning","epitope binning"],
+  "evidence_level":"patent disclosure; not independently treated as a universal epitope",
+  "source_urls":["https://patents.google.com/patent/EP3455257B1/en","https://patents.google.com/patent/US10544225B2/en","https://patents.google.com/patent/WO2017055547A1/en"],
+ },
+}
 def sigmoid(x): return 1/(1+math.exp(-max(-30,min(30,x))))
 def helm(seq): return "PEPTIDE1{"+".".join(seq)+"}$$$$"
 def decision_guide():
@@ -71,14 +96,15 @@ class AntibodyEpitopeGuidedDesign:
  It never infers an antibody epitope from a sequence.  Contact residues must
  originate from a selected antibody-PD-L1 structure or a curated input file.
  """
- reference_name: str = "PD-1/PD-L1 interface-inspired blocking region"
- reference_id: str = "PDB:5N2F"
- contact_residues: tuple = ("interface-defined; replace with antibody-complex contacts",)
+ profile_id: str = "pdl1_antibody_pd1_facing_v_domain"
+
+ def __post_init__(self):
+  if self.profile_id not in EPITOPE_PROFILES: raise ValueError(f"unknown epitope profile: {self.profile_id}")
 
  def describe(self):
-  return {"reference_name":self.reference_name,"reference_id":self.reference_id,
-          "contact_residues":list(self.contact_residues),
-          "required_input":"validated antibody-PD-L1 complex or curated contact-residue list",
+  profile=EPITOPE_PROFILES[self.profile_id]
+  return {"profile_id":self.profile_id, **profile,
+          "required_input":"choose a profile with its cited structure(s), or add a curated antibody-contact residue list with provenance",
           "interpretation":"prioritizes candidates for epitope-overlap docking; it does not establish antibody competition"}
 
  def assess(self, seq):
@@ -163,8 +189,8 @@ class CandidateRanker:
 class ExperimentalFeedbackLoop:
  def record(self, candidate_id, assay, value, unit=""):
   return {"candidate_id":candidate_id,"assay":assay,"value":float(value),"unit":unit,"recorded_at":datetime.now(timezone.utc).isoformat(),"next_action":"加入校准队列；待积累足量已质控数据后重新训练。"}
-def run_pipeline(seed,count,weights):
- gen=CyclicPeptideGenerator(); bind=BindingSelectivityPredictor(); epitope=AntibodyEpitopeGuidedDesign(); optimizer=MultiTargetSelectivityOptimizer(); admet=ADMETSynthesizability(); dock=DockingModule(); rows=[]
+def run_pipeline(seed,count,weights,epitope_profile_id="pdl1_antibody_pd1_facing_v_domain"):
+ gen=CyclicPeptideGenerator(); bind=BindingSelectivityPredictor(); epitope=AntibodyEpitopeGuidedDesign(epitope_profile_id); optimizer=MultiTargetSelectivityOptimizer(); admet=ADMETSynthesizability(); dock=DockingModule(); rows=[]
  for i,item in enumerate(gen.generate(seed,count),1):
   optimized=optimizer.optimize_for_selectivity(item["sequence"]); seq=optimized["sequence"]; item.update({"sequence":seq,"helm":helm(seq)})
   b=bind.predict(seq); rows.append({"id":f"CP-{i:03d}",**item,"optimization":optimized["selectivity_optimization"],"binding":b,"epitope":epitope.assess(seq),"admet":admet.assess(seq),"docking":dock.dock(seq,b["affinity_kcal_mol"])})
