@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
-from platform_core import TargetLiteratureKB, ExperimentalFeedbackLoop, run_pipeline
+from platform_core import AntibodyEpitopeGuidedDesign, TargetLiteratureKB, ExperimentalFeedbackLoop, run_pipeline
 
 ROOT = Path(__file__).resolve().parent
 RUNS = ROOT / "runs"
@@ -149,6 +149,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/": return self.send((ROOT / "platform-dashboard.html").read_text(encoding="utf-8"), "text/html; charset=utf-8")
         if path == "/api/target": return self.send(json.dumps(TargetLiteratureKB().target(), ensure_ascii=False))
         if path == "/api/literature": return self.send(json.dumps(TargetLiteratureKB().search(), ensure_ascii=False))
+        if path == "/api/epitope": return self.send(json.dumps(AntibodyEpitopeGuidedDesign().describe(), ensure_ascii=False))
         if path == "/api/runs":
             runs = [{"id": p.stem, "created": p.stat().st_mtime} for p in sorted(RUNS.glob("run_*.json"), reverse=True)[:20]]
             return self.send(json.dumps(runs))
@@ -184,3 +185,4 @@ def main():
     except KeyboardInterrupt: print("\n平台已停止")
 
 if __name__ == "__main__": main()
+
