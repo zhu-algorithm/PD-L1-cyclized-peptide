@@ -198,3 +198,10 @@ def run_pipeline(seed,count,weights,epitope_profile_id="pdl1_antibody_pd1_facing
  for i,x in enumerate(ranked,1): x["rank"]=i
  return {"created_at":datetime.now(timezone.utc).isoformat(),"weights":norm,"epitope_design":epitope.describe(),"candidates":ranked,"disclaimer":"所有预测和对接字段均为本地规则型演示 surrogate；抗体表位字段仅用于确定结构验证优先级，不可替代经验证模型、专业对接或实验。"}
 
+def export_litrapid_payload(report):
+ """Stable handoff contract consumed by LitRaPID-DT /api/pdl1-validation."""
+ return {"schema":"litrapid.pdl1-report.v1","source":"PD-L1-cyclized-peptide",
+         "epitope_profile_id":report.get("epitope_design",{}).get("profile_id"),
+         "pdl1_report":report,
+         "chemistry_note":"source candidates are conceptual head-to-tail cycles; LitRaPID records any terminal-Cys conversion separately"}
+

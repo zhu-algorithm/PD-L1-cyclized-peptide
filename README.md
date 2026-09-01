@@ -1,5 +1,9 @@
 # PD-L1 环肽抑制剂发现平台
 
+## LitRaPID-DT 接口
+
+`POST /api/litrapid-export` 使用与 `/api/pipeline` 相同的参数，输出版本化的 `litrapid.pdl1-report.v1` 数据包。该数据包可直接提交给 [LitRaPID-DT](https://github.com/zhu-algorithm/LitRaPID) 的 `/api/pdl1-validation`，完成 RaPID 化学路线转换、多轮 mRNA display、RT-PCR/NGS 偏差模拟和最终候选排序。源头尾环化序列与 LitRaPID 生成的末端-Cys硫醚展示序列会分别保留，不能视为同一化学实体。
+
 一个可运行的本地候选筛选界面，基于你提供的五阶段架构整理出可交互的“生成—评估—优先级排序”工作台。
 
 ## 页面导航

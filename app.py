@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
-from platform_core import AntibodyEpitopeGuidedDesign, EPITOPE_PROFILES, TargetLiteratureKB, ExperimentalFeedbackLoop, run_pipeline
+from platform_core import AntibodyEpitopeGuidedDesign, EPITOPE_PROFILES, TargetLiteratureKB, ExperimentalFeedbackLoop, export_litrapid_payload, run_pipeline
 
 ROOT = Path(__file__).resolve().parent
 RUNS = ROOT / "runs"
@@ -163,11 +163,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path not in ("/api/screen", "/api/pipeline", "/api/feedback"): return self.send(json.dumps({"error": "Not found"}), status=404)
+        if path not in ("/api/screen", "/api/pipeline", "/api/feedback", "/api/litrapid-export"): return self.send(json.dumps({"error": "Not found"}), status=404)
         try:
             n = int(self.headers.get("Content-Length", "0")); payload = json.loads(self.rfile.read(n) or b"{}")
-            if path == "/api/pipeline":
-                return self.send(json.dumps(run_pipeline(payload.get("seed", "ACLVIFWY"), payload.get("count", 30), payload.get("weights", {}), payload.get("epitope_profile_id", "pdl1_antibody_pd1_facing_v_domain")), ensure_ascii=False))
+            if path in ("/api/pipeline", "/api/litrapid-export"):
+                report = run_pipeline(payload.get("seed", "ACLVIFWY"), payload.get("count", 30), payload.get("weights", {}), payload.get("epitope_profile_id", "pdl1_antibody_pd1_facing_v_domain"))
+                if path == "/api/litrapid-export": report = export_litrapid_payload(report)
+                return self.send(json.dumps(report, ensure_ascii=False))
             if path == "/api/feedback":
                 result = ExperimentalFeedbackLoop().record(payload.get("candidate_id", ""), payload.get("assay", ""), payload.get("value", 0), payload.get("unit", ""))
                 return self.send(json.dumps(result, ensure_ascii=False))
