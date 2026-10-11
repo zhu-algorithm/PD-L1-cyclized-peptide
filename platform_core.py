@@ -197,4 +197,3 @@ def run_pipeline(seed,count,weights,epitope_profile_id="pdl1_antibody_pd1_facing
  ranked, norm=CandidateRanker().rank(rows,weights)
  for i,x in enumerate(ranked,1): x["rank"]=i
  return {"created_at":datetime.now(timezone.utc).isoformat(),"weights":norm,"epitope_design":epitope.describe(),"candidates":ranked,"disclaimer":"所有预测和对接字段均为本地规则型演示 surrogate；抗体表位字段仅用于确定结构验证优先级，不可替代经验证模型、专业对接或实验。"}
-

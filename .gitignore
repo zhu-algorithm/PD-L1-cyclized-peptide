@@ -1,0 +1,8 @@
+# Runtime artifacts
+runs/
+__pycache__/
+*.pyc
+
+# Local editor / OS state
+.DS_Store
+Thumbs.db
